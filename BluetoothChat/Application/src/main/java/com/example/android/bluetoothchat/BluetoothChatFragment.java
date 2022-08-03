@@ -222,13 +222,23 @@ public class BluetoothChatFragment extends Fragment {
         // Check that there's actually something to send
         if (message.length() > 0) {
             // Get the message bytes and tell the BluetoothChatService to write
-            byte[] send = message.getBytes();
+            String encryptedMessage = encrypt(message);
+
+//            byte[] send = message.getBytes();
+            byte[] send = encryptedMessage.getBytes();
             mChatService.write(send);
 
             // Reset out string buffer to zero and clear the edit text field
             mOutStringBuffer.setLength(0);
             mOutEditText.setText(mOutStringBuffer);
         }
+    }
+
+    private static String encrypt(String message) {
+        return "ENCRYPTED ** " + message;
+    }
+    private static String decrypt(String readMessage) {
+        return "DECRYPTED **" + readMessage;
     }
 
     /**
@@ -313,6 +323,7 @@ public class BluetoothChatFragment extends Fragment {
                     byte[] readBuf = (byte[]) msg.obj;
                     // construct a string from the valid bytes in the buffer
                     String readMessage = new String(readBuf, 0, msg.arg1);
+                    readMessage = decrypt(readMessage);
                     mConversationArrayAdapter.add(mConnectedDeviceName + ":  " + readMessage);
                     break;
                 case Constants.MESSAGE_DEVICE_NAME:
@@ -332,6 +343,7 @@ public class BluetoothChatFragment extends Fragment {
             }
         }
     };
+
 
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         switch (requestCode) {
