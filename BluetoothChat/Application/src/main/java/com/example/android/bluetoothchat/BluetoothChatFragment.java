@@ -21,6 +21,7 @@ import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -32,6 +33,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
@@ -41,6 +43,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 
@@ -71,7 +74,7 @@ public class BluetoothChatFragment extends Fragment {
     /**
      * Array adapter for the conversation thread
      */
-    private ArrayAdapter<String> mConversationArrayAdapter;
+    private ArrayAdapter<ChatMessage> mConversationArrayAdapter;
 
     /**
      * String buffer for outgoing messages
@@ -172,6 +175,27 @@ public class BluetoothChatFragment extends Fragment {
 
         mConversationView.setAdapter(mConversationArrayAdapter);
 
+        mConversationView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                        ChatMessage msg = mConversationArrayAdapter.getItem(position);
+                        String text = msg.getContent();
+                        System.out.println("selected text: " + msg.getContent());
+                        if (text.startsWith("Me:")) {
+                            // do nothing
+                        } else if (!text.endsWith("**Decrypted**")) {
+
+                            Toast.makeText(activity.getApplicationContext(), "Decrypting...", Toast.LENGTH_SHORT).show();
+                            String decrypted = ROT.rot13(text);
+//                            String decrypted = ROT.decrypt(text.getBytes(), AES.SECRET_KEY);
+                            decrypted = decrypted + "\n**Decrypted**";
+                            msg.setContent(decrypted);
+                            mConversationArrayAdapter.notifyDataSetChanged();
+                        }
+                    }
+                }
+        );
+
         // Initialize the compose field with a listener for the return key
         mOutEditText.setOnEditorActionListener(mWriteListener);
 
@@ -212,6 +236,7 @@ public class BluetoothChatFragment extends Fragment {
      *
      * @param message A string of text to send.
      */
+    @RequiresApi(api = Build.VERSION_CODES.O)
     private void sendMessage(String message) {
         // Check that we're actually connected before trying anything
         if (mChatService.getState() != BluetoothChatService.STATE_CONNECTED) {
@@ -222,23 +247,13 @@ public class BluetoothChatFragment extends Fragment {
         // Check that there's actually something to send
         if (message.length() > 0) {
             // Get the message bytes and tell the BluetoothChatService to write
-            String encryptedMessage = encrypt(message);
-
-//            byte[] send = message.getBytes();
-            byte[] send = encryptedMessage.getBytes();
+            byte[] send = message.getBytes();
             mChatService.write(send);
 
             // Reset out string buffer to zero and clear the edit text field
             mOutStringBuffer.setLength(0);
             mOutEditText.setText(mOutStringBuffer);
         }
-    }
-
-    private static String encrypt(String message) {
-        return "ENCRYPTED ** " + message;
-    }
-    private static String decrypt(String readMessage) {
-        return "DECRYPTED **" + readMessage;
     }
 
     /**
@@ -317,14 +332,13 @@ public class BluetoothChatFragment extends Fragment {
                     byte[] writeBuf = (byte[]) msg.obj;
                     // construct a string from the buffer
                     String writeMessage = new String(writeBuf);
-                    mConversationArrayAdapter.add("Me:  " + writeMessage);
+                    mConversationArrayAdapter.add(new ChatMessage("Me:  " + writeMessage, true));
                     break;
                 case Constants.MESSAGE_READ:
                     byte[] readBuf = (byte[]) msg.obj;
                     // construct a string from the valid bytes in the buffer
                     String readMessage = new String(readBuf, 0, msg.arg1);
-                    readMessage = decrypt(readMessage);
-                    mConversationArrayAdapter.add(mConnectedDeviceName + ":  " + readMessage);
+                    mConversationArrayAdapter.add(new ChatMessage(readMessage));
                     break;
                 case Constants.MESSAGE_DEVICE_NAME:
                     // save the connected device's name

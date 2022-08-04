@@ -17,11 +17,17 @@
 
 package com.example.android.bluetoothchat;
 
+import android.graphics.Color;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.TextView;
+import android.widget.Toast;
 import android.widget.ViewAnimator;
 
+import androidx.annotation.RequiresApi;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
 
@@ -31,6 +37,8 @@ import com.example.android.common.logger.LogFragment;
 import com.example.android.common.logger.LogWrapper;
 import com.example.android.common.logger.MessageOnlyLogFilter;
 
+import java.nio.charset.StandardCharsets;
+
 /**
  * A simple launcher activity containing a summary sample description, sample log and a custom
  * {@link Fragment} which can display a view.
@@ -38,6 +46,7 @@ import com.example.android.common.logger.MessageOnlyLogFilter;
  * For devices with displays with a width of 720dp or greater, the sample log is always visible,
  * on other devices it's visibility is controlled by an item on the Action Bar.
  */
+@RequiresApi(api = Build.VERSION_CODES.O)
 public class MainActivity extends SampleActivityBase {
 
     public static final String TAG = "MainActivity";
